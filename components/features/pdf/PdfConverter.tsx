@@ -22,8 +22,26 @@ export default function PdfConverter() {
     async function configurePdfJsWorker() {
       try {
         const pdfjsLib = await import('pdfjs-dist');
-        // Ensure worker is configured using the mjs build for modern environments
-        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.mjs';
+        
+        // Try multiple worker sources for better compatibility
+        const workerSources = [
+          '/pdf.worker.mjs',
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
+          `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`
+        ];
+        
+        // Use the first available worker source
+        for (const workerSrc of workerSources) {
+          try {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+            break;
+          } catch (workerError) {
+            console.warn(`Failed to set worker source: ${workerSrc}`, workerError);
+            continue;
+          }
+        }
+        
+        console.log('PDF.js worker configured successfully');
       } catch (e) {
         console.error("Failed to load pdfjs-dist for worker configuration", e);
         setStatusMessage({ text: 'Error setting up PDF worker', type: 'error' });
