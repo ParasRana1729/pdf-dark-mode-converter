@@ -2,7 +2,7 @@
 module.exports = {
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}", // If you create a components folder
+    "./components/**/*.{js,ts,jsx,tsx,mdx}", // Components at project root
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}", // For Next.js 13+ App Router, if used
   ],
   darkMode: 'class', 

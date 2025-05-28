@@ -66,7 +66,24 @@ README.md
 next-env.d.ts
 package-lock.json
 package.json
-postcss.config.mjs
+postcss.config.js
+tailwind.config.js
+tsconfig.json
+components/
+├── features/
+│   └── pdf/
+│       └── PdfConverter.tsx
+├── layout/
+│   ├── Footer.tsx
+│   └── Header.tsx
+└── ui/
+    ├── FileUploadArea.tsx
+    ├── ProgressBar.tsx
+    └── StatusDisplay.tsx
+constants/
+    └── (empty - for future constants)
+hooks/
+    └── (empty - for future custom hooks)
 public/
 ├── apple-touch-icon.png
 ├── favicon-16x16.png
@@ -75,30 +92,13 @@ public/
 ├── logo.png
 └── pdf.worker.mjs
 src/
-├── components/
-│   ├── features/
-│   │   └── pdf/
-│   │       └── PdfConverter.tsx
-│   │   └── layout/
-│   │       └── Footer.tsx
-│   │       └── Header.tsx
-│   └── ui/
-│       ├── FileUploadArea.tsx
-│       ├── ProgressBar.tsx
-│       └── StatusDisplay.tsx
-├── constants/
-│   └── index.ts (if you create one)
-├── hooks/
-│   └── usePdfConverter.ts (if you create one for more complex logic)
 ├── pages/
 │   ├── _app.tsx
 │   └── index.tsx
 └── styles/
     └── globals.css
-tailwind.config.js
-tsconfig.json
 utils/
-    └── fileUtils.ts (if you create one for file utilities)
+    └── (empty - for future utility functions)
 ```
 
 ## 🚀 Getting Started
