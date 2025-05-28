@@ -14,6 +14,9 @@ A modern web application that converts PDF documents to dark mode for comfortabl
 - **Drag & Drop**: Easy file upload with drag and drop support
 - **Progress Tracking**: Real-time conversion progress with detailed status messages
 - **High Quality**: Preserves document structure and layout quality
+- **Direct Download**: Instantly download your converted PDF
+- **File Size Display**: Shows file size in KB or MB
+- **PWA Ready**: Includes manifest and icons for PWA support
 
 ## 🛠️ Technology Stack
 
@@ -55,72 +58,118 @@ A modern web application that converts PDF documents to dark mode for comfortabl
 ## 🏗️ Project Structure
 
 ```
-pdf-dark-mode-converter/
-├── public/
-│   ├── logo.png              # Application logo
-│   ├── favicon.ico           # Favicon files
-│   ├── pdf.worker.mjs        # PDF.js worker
-│   └── ...
-├── src/
-│   ├── pages/
-│   │   └── index.tsx         # Main application page
-│   └── styles/
-│       └── globals.css       # Global styles
-├── package.json
-├── tailwind.config.js
-├── next.config.js
-└── README.md
+.gitignore
+CONTRIBUTING.md
+DEPLOYMENT.md
+LICENSE
+README.md
+next-env.d.ts
+package-lock.json
+package.json
+postcss.config.mjs
+public/
+├── apple-touch-icon.png
+├── favicon-16x16.png
+├── favicon-32x32.png
+├── favicon.ico
+├── logo.png
+└── pdf.worker.mjs
+src/
+├── components/
+│   ├── features/
+│   │   └── pdf/
+│   │       └── PdfConverter.tsx
+│   │   └── layout/
+│   │       └── Footer.tsx
+│   │       └── Header.tsx
+│   └── ui/
+│       ├── FileUploadArea.tsx
+│       ├── ProgressBar.tsx
+│       └── StatusDisplay.tsx
+├── constants/
+│   └── index.ts (if you create one)
+├── hooks/
+│   └── usePdfConverter.ts (if you create one for more complex logic)
+├── pages/
+│   ├── _app.tsx
+│   └── index.tsx
+└── styles/
+    └── globals.css
+tailwind.config.js
+tsconfig.json
+utils/
+    └── fileUtils.ts (if you create one for file utilities)
 ```
 
-## 🔧 Development
+## 🚀 Getting Started
 
-### Available Scripts
+### Prerequisites
 
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
+- Node.js (v18.x or later recommended)
+- npm or yarn
 
-### Key Components
+### Installation
 
-- **File Upload**: Drag & drop interface with file validation
-- **PDF Processing**: Uses PDF.js for rendering and jsPDF for output
-- **Progress Tracking**: Real-time progress updates during conversion
-- **Dark Theme**: Modern dark UI with purple accent colors
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/yourusername/pdf-dark-mode-converter.git
+    cd pdf-dark-mode-converter
+    ```
 
-## 🚀 Deployment
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    # or
+    # yarn install
+    ```
 
-### Vercel (Recommended)
+3.  **Set up PDF.js worker:**
+    Copy `node_modules/pdfjs-dist/build/pdf.worker.mjs` to the `public/` directory.
+    *Ensure your `pdf.worker.mjs` is in the `public` folder for the application to work correctly.*
 
-1. Push your code to GitHub
-2. Connect your repository to Vercel
-3. Deploy automatically
+### Running the Development Server
 
-### Manual Deployment
+```bash
+npm run dev
+# or
+# yarn dev
+```
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-1. **Build the application**
-   ```bash
-   npm run build
-   ```
+## 🛠️ How It Works
 
-2. **Start the production server**
-   ```bash
-   npm start
-   ```
+1.  **File Selection**: User uploads a PDF file via the drag & drop interface or file browser.
+2.  **PDF Parsing**: The application uses `pdfjs-dist` to parse the PDF document page by page directly in the browser.
+3.  **Canvas Rendering**: Each page is rendered onto an HTML5 Canvas element.
+4.  **Pixel Manipulation**: The pixel data of the rendered page on the canvas is accessed. Each pixel's RGB values are inverted (e.g., `newColor = 255 - oldColor`).
+5.  **New PDF Generation**: The modified (inverted) image data from the canvas is then used to create a new page in a PDF document using `jsPDF`.
+6.  **Download**: The newly generated dark mode PDF is provided to the user as a direct download.
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
+## 📜 Scripts
+
+- `npm run dev`: Starts the development server.
+- `npm run build`: Builds the application for production.
+- `npm run start`: Starts a production server (after building).
+- `npm run lint`: Lints the codebase (you may need to configure ESLint).
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Contributions are welcome! Please see `CONTRIBUTING.md` for more details on how to get started, report bugs, and submit pull requests.
+
+## ☁️ Deployment
+
+Refer to `DEPLOYMENT.md` for instructions on deploying this application to platforms like Vercel or Netlify.
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the `LICENSE` file for details.
+
+## 🙏 Acknowledgements
+
+- [PDF.js](https://mozilla.github.io/pdf.js/) for PDF rendering.
+- [jsPDF](https://github.com/parallax/jsPDF) for PDF generation.
+- [Tailwind CSS](https://tailwindcss.com/) for styling.
+- [Heroicons](https://heroicons.com/) for icons.
 
 ## 🐛 Known Issues
 
@@ -143,13 +192,6 @@ If you encounter any issues or have questions:
 1. Check the [Issues](https://github.com/yourusername/pdf-dark-mode-converter/issues) page
 2. Create a new issue with detailed information
 3. Include browser version and PDF details if relevant
-
-## 🙏 Acknowledgments
-
-- [PDF.js](https://github.com/mozilla/pdf.js/) for PDF rendering
-- [jsPDF](https://github.com/parallax/jsPDF) for PDF generation
-- [Heroicons](https://heroicons.com/) for beautiful icons
-- [Tailwind CSS](https://tailwindcss.com/) for styling
 
 ---
 
