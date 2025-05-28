@@ -1,5 +1,3 @@
-import Image from 'next/image';
-
 export default function Header() {
   return (
     <header className="border-b border-gray-800 bg-[#1a1a2e]">
@@ -7,12 +5,16 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center space-x-3">
             <div className="relative w-8 h-8">
-              <Image
+              <img
                 src="/logo.png"
                 alt="PDF Converter Logo"
                 width={32}
                 height={32}
                 className="rounded-lg"
+                onError={(e) => {
+                  console.error('Logo failed to load');
+                  e.currentTarget.style.display = 'none';
+                }}
               />
             </div>
             <div>

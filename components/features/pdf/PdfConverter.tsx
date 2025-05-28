@@ -25,15 +25,30 @@ export default function PdfConverter() {
         
         // Try multiple worker sources for better compatibility
         const workerSources = [
+          '/pdf.worker.js',
           '/pdf.worker.mjs',
           'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
           `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`
         ];
         
-        // Use the first available worker source
+        // Test each worker source
+        let workerConfigured = false;
         for (const workerSrc of workerSources) {
           try {
+            // Test if the worker source is accessible
+            if (workerSrc.startsWith('/')) {
+              // For local files, try to fetch first
+              try {
+                const response = await fetch(workerSrc, { method: 'HEAD' });
+                if (!response.ok) continue;
+              } catch {
+                continue;
+              }
+            }
+            
             pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+            console.log(`PDF.js worker configured successfully with: ${workerSrc}`);
+            workerConfigured = true;
             break;
           } catch (workerError) {
             console.warn(`Failed to set worker source: ${workerSrc}`, workerError);
@@ -41,10 +56,12 @@ export default function PdfConverter() {
           }
         }
         
-        console.log('PDF.js worker configured successfully');
+        if (!workerConfigured) {
+          throw new Error('Failed to configure any PDF worker source');
+        }
       } catch (e) {
         console.error("Failed to load pdfjs-dist for worker configuration", e);
-        setStatusMessage({ text: 'Error setting up PDF worker', type: 'error' });
+        setStatusMessage({ text: 'Error setting up PDF worker. Please try refreshing the page.', type: 'error' });
       }
     }
     configurePdfJsWorker();
