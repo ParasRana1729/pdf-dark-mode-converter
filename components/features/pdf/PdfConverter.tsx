@@ -27,8 +27,8 @@ export default function PdfConverter() {
         const workerSources = [
           '/pdf.worker.js',
           '/pdf.worker.mjs',
-          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js',
-          `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`
+          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.2.133/pdf.worker.min.js',
+          `https://unpkg.com/pdfjs-dist@5.2.133/build/pdf.worker.min.js`
         ];
         
         // Test each worker source
