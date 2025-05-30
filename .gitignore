@@ -6,6 +6,13 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Development files
+TODO.md
+NOTES.md
+.scratch/
+temp/
+*.tmp
+
 # Next.js
 .next/
 out/

@@ -1,4 +1,4 @@
-import { useState, useCallback, ChangeEvent, DragEvent, useEffect } from 'react';
+import { useState, useCallback, ChangeEvent, DragEvent } from 'react';
 import { DocumentArrowDownIcon, Cog6ToothIcon, ArrowPathIcon, CheckCircleIcon } from '@heroicons/react/24/outline';
 import FileUploadArea from '@/components/ui/FileUploadArea';
 import ProgressBar from '@/components/ui/ProgressBar';
@@ -16,56 +16,6 @@ export default function PdfConverter() {
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [progress, setProgress] = useState(0);
-
-  // Set workerSrc on client-side
-  useEffect(() => {
-    async function configurePdfJsWorker() {
-      try {
-        const pdfjsLib = await import('pdfjs-dist');
-        
-        // Try multiple worker sources for better compatibility
-        const workerSources = [
-          '/pdf.worker.js',
-          '/pdf.worker.mjs',
-          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.2.133/pdf.worker.min.js',
-          `https://unpkg.com/pdfjs-dist@5.2.133/build/pdf.worker.min.js`
-        ];
-        
-        // Test each worker source
-        let workerConfigured = false;
-        for (const workerSrc of workerSources) {
-          try {
-            // Test if the worker source is accessible
-            if (workerSrc.startsWith('/')) {
-              // For local files, try to fetch first
-              try {
-                const response = await fetch(workerSrc, { method: 'HEAD' });
-                if (!response.ok) continue;
-              } catch {
-                continue;
-              }
-            }
-            
-            pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
-            console.log(`PDF.js worker configured successfully with: ${workerSrc}`);
-            workerConfigured = true;
-            break;
-          } catch (workerError) {
-            console.warn(`Failed to set worker source: ${workerSrc}`, workerError);
-            continue;
-          }
-        }
-        
-        if (!workerConfigured) {
-          throw new Error('Failed to configure any PDF worker source');
-        }
-      } catch (e) {
-        console.error("Failed to load pdfjs-dist for worker configuration", e);
-        setStatusMessage({ text: 'Error setting up PDF worker. Please try refreshing the page.', type: 'error' });
-      }
-    }
-    configurePdfJsWorker();
-  }, []);
 
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -128,102 +78,225 @@ export default function PdfConverter() {
     setProgress(0);
 
     try {
-      setStatusMessage({ text: 'Loading PDF libraries...', type: 'processing' });
-      // Dynamically import libraries on client-side
-      const { default: jsPDF } = await import('jspdf');
-      const pdfjsLib = await import('pdfjs-dist');
-      // Worker should already be configured by the useEffect hook
-      setProgress(15);
-
-      setStatusMessage({ text: 'Reading PDF...', type: 'processing' });
-      const arrayBuffer = await selectedFile.arrayBuffer();
+      setStatusMessage({ text: 'Processing PDF for dark mode...', type: 'processing' });
       setProgress(25);
 
-      setStatusMessage({ text: 'Processing document...', type: 'processing' });
-      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-      const pdf = await loadingTask.promise;
-      const totalPages = pdf.numPages;
-      setProgress(35);
+      // Read the original PDF file
+      const arrayBuffer = await selectedFile.arrayBuffer();
+      setProgress(50);
 
-      const newPdf = new jsPDF();
-      let isFirstPage = true;
+      setStatusMessage({ text: 'Creating dark mode viewer...', type: 'processing' });
 
-      for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
-        setStatusMessage({ text: `Converting page ${pageNum}/${totalPages}`, type: 'processing' });
-
-        const page = await pdf.getPage(pageNum);
-        const scale = 2.0; // Increased scale for better quality
-        const viewport = page.getViewport({ scale });
-
-        const canvas = document.createElement('canvas');
-        const context = canvas.getContext('2d');
-        if (!context) throw new Error('Canvas context error');
-
-        // Get device pixel ratio for high-DPI display support
-        const devicePixelRatio = window.devicePixelRatio || 1;
+      // Convert PDF to base64 for embedding - handle large files with chunked conversion
+      setStatusMessage({ text: 'Processing large PDF file...', type: 'processing' });
+      const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+        const bytes = new Uint8Array(buffer);
+        const chunkSize = 65536; // 64KB chunks to avoid call stack overflow
+        let binary = '';
         
-        // Set the actual canvas size accounting for device pixel ratio
-        canvas.width = viewport.width * devicePixelRatio;
-        canvas.height = viewport.height * devicePixelRatio;
-        
-        // Scale the context to ensure correct drawing operations
-        context.scale(devicePixelRatio, devicePixelRatio);
-        
-        // Set canvas CSS size to maintain proper display size
-        canvas.style.width = viewport.width + 'px';
-        canvas.style.height = viewport.height + 'px';
-
-        // Optimize canvas rendering for quality
-        context.imageSmoothingEnabled = true;
-        context.imageSmoothingQuality = 'high';
-
-        await page.render({ canvasContext: context, viewport: viewport }).promise;
-
-        const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-        for (let i = 0; i < data.length; i += 4) {
-          data[i] = 255 - data[i]; // Red
-          data[i + 1] = 255 - data[i + 1]; // Green
-          data[i + 2] = 255 - data[i + 2]; // Blue
+        for (let i = 0; i < bytes.length; i += chunkSize) {
+          const chunk = bytes.slice(i, i + chunkSize);
+          binary += String.fromCharCode.apply(null, Array.from(chunk));
+          
+          // Update progress for large files
+          if (i % (chunkSize * 10) === 0) {
+            const progressPercent = Math.min(65 + (i / bytes.length) * 10, 74);
+            setProgress(progressPercent);
+          }
         }
-        context.putImageData(imageData, 0, 0);
+        
+        return btoa(binary);
+      };
 
-        const imgData = canvas.toDataURL('image/jpeg', 0.95); // Increased quality
+      const base64PDF = arrayBufferToBase64(arrayBuffer);
+      setProgress(75);
 
-        if (!isFirstPage) newPdf.addPage();
-        isFirstPage = false;
-
-        const pdfWidth = newPdf.internal.pageSize.getWidth();
-        const pdfHeight = newPdf.internal.pageSize.getHeight();
-        const canvasAspect = (viewport.width) / (viewport.height); // Use viewport dimensions for aspect ratio
-        const pageAspect = pdfWidth / pdfHeight;
-
-        let finalWidth: number, finalHeight: number;
-        if (canvasAspect > pageAspect) {
-          finalWidth = pdfWidth;
-          finalHeight = pdfWidth / canvasAspect;
-        } else {
-          finalHeight = pdfHeight;
-          finalWidth = pdfHeight * canvasAspect;
+      // Create a simplified dark mode HTML viewer
+      const darkModeViewer = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#000000">
+    <title>Dark Mode PDF - ${selectedFile.name}</title>
+    <style>
+        :root {
+            color-scheme: dark;
         }
-        const x = (pdfWidth - finalWidth) / 2;
-        const y = (pdfHeight - finalHeight) / 2;
-        newPdf.addImage(imgData, 'JPEG', x, y, finalWidth, finalHeight);
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-        setProgress(Math.round(35 + (pageNum / totalPages) * 55));
-      }
+        html {
+            background: #000000;
+            color-scheme: dark;
+        }
 
-      setProgress(95);
-      setStatusMessage({ text: 'Finalizing...', type: 'processing' });
-      const pdfBlob = newPdf.output('blob');
-      const url = URL.createObjectURL(pdfBlob);
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000000;
+            color: white;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            background: #1a1a1a;
+            padding: 12px 20px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        .title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #e5e5e5;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .download-btn {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+            text-decoration: none;
+        }
+
+        .download-btn:hover {
+            background: #3730a3;
+            transform: translateY(-1px);
+        }
+
+        .pdf-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+            background: #000000;
+        }
+
+        .pdf-viewer {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #000000;
+            filter: invert(0.92) hue-rotate(180deg) contrast(1.05) brightness(1.15) saturate(1.1);
+        }
+        
+        /* Force dark mode on PDF viewer */
+        embed {
+            background: #000000 !important;
+            color-scheme: dark !important;
+        }
+        
+        /* Additional styling for PDF controls */
+        embed::-webkit-media-controls-panel {
+            background-color: #1a1a1a !important;
+        }
+        
+        /* Force dark theme on all PDF viewer elements */
+        embed, object, iframe {
+            color-scheme: dark !important;
+            background: #000000 !important;
+        }
+        
+        /* Target PDF.js viewer if present */
+        .textLayer {
+            filter: invert(1) hue-rotate(180deg) !important;
+        }
+        
+        /* Force dark scrollbars */
+        * {
+            scrollbar-color: #333 #000 !important;
+            scrollbar-width: thin !important;
+        }
+        
+        *::-webkit-scrollbar {
+            background: #000 !important;
+        }
+        
+        *::-webkit-scrollbar-thumb {
+            background: #333 !important;
+        }
+
+        .icon {
+            width: 16px;
+            height: 16px;
+            fill: currentColor;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 8px 12px;
+            }
+
+            .title {
+                font-size: 12px;
+            }
+
+            .download-btn {
+                padding: 6px 12px;
+                font-size: 12px;
+            }
+
+            .pdf-container {
+                top: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="pdf-container">
+        <embed 
+            id="pdf-viewer" 
+            class="pdf-viewer"
+            src="data:application/pdf;base64,${base64PDF}"
+            title="PDF Document">
+    </div>
+
+</body>
+</html>`;
+
+      setProgress(90);
+      setStatusMessage({ text: 'Finalizing dark mode experience...', type: 'processing' });
+
+      // Create blob and URL
+      const htmlBlob = new Blob([darkModeViewer], { type: 'text/html' });
+      const url = URL.createObjectURL(htmlBlob);
       setDownloadUrl(url);
-      setStatusMessage({ text: 'Conversion complete!', type: 'success' });
+
       setProgress(100);
+      setStatusMessage({ 
+        text: `✅ Dark mode PDF ready! Perfect text selection preserved. Viewer size: ${(htmlBlob.size / 1024 / 1024).toFixed(1)}MB`, 
+        type: 'success' 
+      });
+
     } catch (error) {
       console.error('Conversion error:', error);
       const errorMsg = error instanceof Error ? error.message : 'Conversion failed';
-      setStatusMessage({ text: errorMsg, type: 'error' });
+      setStatusMessage({ text: `❌ ${errorMsg}`, type: 'error' });
       setProgress(0);
     } finally {
       setIsProcessing(false);
@@ -243,7 +316,7 @@ export default function PdfConverter() {
             </h2>
             <p className="text-lg text-gray-300 mb-8">
               Transform your PDF documents to dark theme for comfortable reading in low-light environments.
-              Our advanced pixel-level color inversion preserves all formatting and layout.
+              Our advanced CSS filter technology preserves text selectability and maintains perfect quality.
             </p>
           </div>
 
@@ -268,14 +341,29 @@ export default function PdfConverter() {
             </button>
 
             {downloadUrl && (
-              <a
-                href={downloadUrl}
-                download={selectedFile ? `${selectedFile.name.replace(/\.pdf$/i, '')}_dark.pdf` : 'dark.pdf'}
-                className="flex-1 sm:flex-none bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-3 shadow-lg hover:shadow-green-500/25"
-              >
-                <DocumentArrowDownIcon className="w-5 h-5" />
-                <span>Download</span>
-              </a>
+              <>
+                <a
+                  href={downloadUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 sm:flex-none bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-3 shadow-lg hover:shadow-green-500/25"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  <span>View Dark Mode</span>
+                </a>
+                
+                <a
+                  href={downloadUrl}
+                  download={selectedFile ? `${selectedFile.name.replace(/\.pdf$/i, '')}_dark_mode.html` : 'dark_mode.html'}
+                  className="flex-1 sm:flex-none bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-4 px-6 rounded-xl transition-all duration-300 flex items-center justify-center space-x-3 shadow-lg hover:shadow-blue-500/25"
+                >
+                  <DocumentArrowDownIcon className="w-5 h-5" />
+                  <span>Download Dark Mode</span>
+                </a>
+              </>
             )}
           </div>
 
