@@ -30,7 +30,6 @@ export default function PdfConverter() {
     loop: true,
   });
 
-  // Rest of your existing functions...
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -118,31 +117,62 @@ export default function PdfConverter() {
             background: #0f0f23;
             color: #fff;
             font-family: -apple-system, system-ui, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
 
-        #viewerContainer {
-            position: absolute;
+        #toolbar {
+            background: rgba(26, 26, 46, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 0.5rem 1rem;
+            position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            bottom: 0;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #pageInfo {
+            color: #fff;
+            font-size: 0.9rem;
+        }
+
+        #viewerContainer {
+            margin-top: 3.5rem;
+            padding: 1rem;
+            flex: 1;
             overflow: auto;
             background: #0f0f23;
         }
 
         #viewer {
             width: 100%;
-            height: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            padding: 1rem;
         }
 
-        #viewer .page {
-            margin: 1em auto;
+        .page {
+            background: #1a1a2e;
+            border-radius: 8px;
             box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
         }
 
         canvas {
             filter: invert(0.92) hue-rotate(180deg) contrast(1.05) brightness(1.15) saturate(1.1);
-            border-radius: 4px;
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+            height: auto !important;
         }
 
         .loading {
@@ -150,8 +180,14 @@ export default function PdfConverter() {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            font-size: 1.2em;
+            background: rgba(26, 26, 46, 0.9);
+            backdrop-filter: blur(10px);
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             color: #fff;
+            font-size: 1rem;
         }
 
         /* Custom scrollbar */
@@ -165,23 +201,42 @@ export default function PdfConverter() {
         }
 
         ::-webkit-scrollbar-thumb {
-            background: #3f3f67;
+            background: rgba(63, 63, 103, 0.8);
             border-radius: 6px;
+            border: 3px solid #1a1a2e;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: #4f4f77;
+            background: rgba(79, 79, 119, 0.9);
+        }
+
+        @media (max-width: 768px) {
+            #toolbar {
+                padding: 0.5rem;
+            }
+
+            #viewerContainer {
+                margin-top: 3rem;
+                padding: 0.5rem;
+            }
+
+            #viewer {
+                padding: 0.5rem;
+                gap: 1rem;
+            }
         }
     </style>
 </head>
 <body>
+    <div id="toolbar">
+        <div id="pageInfo">Loading...</div>
+    </div>
     <div id="viewerContainer">
         <div id="viewer"></div>
     </div>
-    <div class="loading">Loading PDF...</div>
+    <div class="loading">Preparing your dark mode PDF...</div>
 
     <script>
-        // Initialize PDF.js
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.js';
 
         const BASE64_PDF = '${await arrayBufferToBase64(arrayBuffer)}';
@@ -191,19 +246,23 @@ export default function PdfConverter() {
                 const loadingTask = pdfjsLib.getDocument({ data: atob(BASE64_PDF) });
                 const pdf = await loadingTask.promise;
                 
+                const pageInfo = document.getElementById('pageInfo');
+                pageInfo.textContent = \`Page 1 of \${pdf.numPages}\`;
+                
                 document.querySelector('.loading').style.display = 'none';
                 
                 for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
                     const page = await pdf.getPage(pageNum);
-                    const scale = 1.5;
-                    const viewport = page.getViewport({ scale });
+                    const viewport = page.getViewport({ scale: 1.5 });
+
+                    const pageContainer = document.createElement('div');
+                    pageContainer.className = 'page';
+                    document.getElementById('viewer').appendChild(pageContainer);
 
                     const canvas = document.createElement('canvas');
                     const context = canvas.getContext('2d');
                     canvas.height = viewport.height;
                     canvas.width = viewport.width;
-                    canvas.style.margin = '1em auto';
-                    canvas.style.display = 'block';
 
                     const renderContext = {
                         canvasContext: context,
@@ -211,6 +270,10 @@ export default function PdfConverter() {
                     };
 
                     await page.render(renderContext).promise;
+                    pageContainer.appendChild(canvas);
+                    
+                    // Update page info
+                    pageInfo.textContent = \`Page \${pageNum} of \${pdf.numPages}\`;
                 }
             } catch (error) {
                 console.error('Error loading PDF:', error);
@@ -233,7 +296,7 @@ export default function PdfConverter() {
 
       setProgress(100);
       setStatusMessage({ 
-        text: `✅ Dark mode PDF ready! Custom viewer size: ${(htmlBlob.size / 1024 / 1024).toFixed(1)}MB`, 
+        text: `✨ Dark mode PDF ready! Enhanced viewer size: ${(htmlBlob.size / 1024 / 1024).toFixed(1)}MB`, 
         type: 'success' 
       });
 
@@ -256,6 +319,12 @@ export default function PdfConverter() {
     for (let i = 0; i < bytes.length; i += chunkSize) {
       const chunk = bytes.slice(i, i + chunkSize);
       binary += String.fromCharCode.apply(null, Array.from(chunk));
+      
+      // Update progress for large files
+      if (i % (chunkSize * 10) === 0) {
+        const progressPercent = Math.min(65 + (i / bytes.length) * 10, 74);
+        setProgress(progressPercent);
+      }
     }
     
     return btoa(binary);
@@ -276,7 +345,7 @@ export default function PdfConverter() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
           <div className="text-center lg:text-left">
-            <h2 className="text-3xl lg:text-4xl font-bold text-white mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400">
+            <h2 className="text-4xl lg:text-5xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 animate-gradient">
               Convert PDF to Dark Mode
             </h2>
             <p className="text-lg text-gray-300 mb-8">
@@ -342,8 +411,8 @@ export default function PdfConverter() {
 
           {/* Features Section with Glassmorphism */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 pt-8">
-            <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10 hover:border-purple-500/30 transition-all duration-300">
-              <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mb-4">
+            <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10 hover:border-purple-500/30 transition-all duration-300 group">
+              <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <svg className="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
@@ -352,8 +421,8 @@ export default function PdfConverter() {
               <p className="text-gray-400 text-sm">Advanced PDF.js processing ensures quick conversion without quality loss.</p>
             </div>
 
-            <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10 hover:border-purple-500/30 transition-all duration-300">
-              <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center mb-4">
+            <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10 hover:border-purple-500/30 transition-all duration-300 group">
+              <div className="w-12 h-12 bg-green-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <svg className="w-6 h-6 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -362,8 +431,8 @@ export default function PdfConverter() {
               <p className="text-gray-400 text-sm">Custom PDF.js viewer ensures perfect text clarity and formatting.</p>
             </div>
 
-            <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10 hover:border-purple-500/30 transition-all duration-300">
-              <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4">
+            <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10 hover:border-purple-500/30 transition-all duration-300 group">
+              <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <svg className="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
@@ -372,8 +441,8 @@ export default function PdfConverter() {
               <p className="text-gray-400 text-sm">All processing happens in your browser using PDF.js. Files never leave your device.</p>
             </div>
 
-            <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10 hover:border-purple-500/30 transition-all duration-300">
-              <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-4">
+            <div className="bg-white/5 backdrop-blur-lg rounded-xl p-6 border border-white/10 hover:border-purple-500/30 transition-all duration-300 group">
+              <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <svg className="w-6 h-6 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
