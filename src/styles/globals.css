@@ -4,38 +4,100 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --dark-primary: #0A0A1B;
+  --dark-secondary: #14142B;
+  --dark-accent: #6C2BD9;
+}
+
 html {
   height: 100%;
+  background: var(--dark-primary);
 }
 
 body {
   margin: 0;
   padding: 0;
-  height: 100%;
+  min-height: 100vh;
   font-family: 'Inter', sans-serif;
+  background: radial-gradient(circle at top right, rgba(108, 43, 217, 0.1), transparent 40%),
+              radial-gradient(circle at bottom left, rgba(37, 99, 235, 0.1), transparent 40%);
+  color: #fff;
 }
 
 #__next {
-  height: 100%;
+  min-height: 100vh;
 }
 
-/* Optimize image and canvas rendering for better quality */
+.glass-card {
+  background: rgba(20, 20, 43, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+}
+
+.glass-button {
+  background: rgba(108, 43, 217, 0.2);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(108, 43, 217, 0.3);
+  transition: all 0.3s ease;
+}
+
+.glass-button:hover {
+  background: rgba(108, 43, 217, 0.3);
+  border-color: rgba(108, 43, 217, 0.5);
+  transform: translateY(-1px);
+}
+
+.animated-gradient {
+  background: linear-gradient(-45deg, #6C2BD9, #4F46E5, #2563EB);
+  background-size: 200% 200%;
+  animation: gradient 8s linear infinite;
+}
+
+.floating {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes gradient {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--dark-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--dark-accent);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #7c3aed;
+}
+
+/* Optimize PDF rendering */
 canvas {
   image-rendering: -webkit-optimize-contrast;
-  image-rendering: high-quality;
-  image-rendering: smooth;
+  image-rendering: crisp-edges;
 }
-
-img {
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: high-quality;
-  image-rendering: smooth;
-}
-
-/* Ensure high quality rendering on high-DPI displays */
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-  canvas {
-    image-rendering: -webkit-optimize-contrast;
-    image-rendering: high-quality;
-  }
-} 
