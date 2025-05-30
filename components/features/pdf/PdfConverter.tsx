@@ -152,15 +152,30 @@ export default function PdfConverter() {
         setStatusMessage({ text: `Converting page ${pageNum}/${totalPages}`, type: 'processing' });
 
         const page = await pdf.getPage(pageNum);
-        const scale = 1.5;
+        const scale = 2.0; // Increased scale for better quality
         const viewport = page.getViewport({ scale });
 
         const canvas = document.createElement('canvas');
         const context = canvas.getContext('2d');
         if (!context) throw new Error('Canvas context error');
 
-        canvas.height = viewport.height;
-        canvas.width = viewport.width;
+        // Get device pixel ratio for high-DPI display support
+        const devicePixelRatio = window.devicePixelRatio || 1;
+        
+        // Set the actual canvas size accounting for device pixel ratio
+        canvas.width = viewport.width * devicePixelRatio;
+        canvas.height = viewport.height * devicePixelRatio;
+        
+        // Scale the context to ensure correct drawing operations
+        context.scale(devicePixelRatio, devicePixelRatio);
+        
+        // Set canvas CSS size to maintain proper display size
+        canvas.style.width = viewport.width + 'px';
+        canvas.style.height = viewport.height + 'px';
+
+        // Optimize canvas rendering for quality
+        context.imageSmoothingEnabled = true;
+        context.imageSmoothingQuality = 'high';
 
         await page.render({ canvasContext: context, viewport: viewport }).promise;
 
@@ -173,14 +188,14 @@ export default function PdfConverter() {
         }
         context.putImageData(imageData, 0, 0);
 
-        const imgData = canvas.toDataURL('image/jpeg', 0.9);
+        const imgData = canvas.toDataURL('image/jpeg', 0.95); // Increased quality
 
         if (!isFirstPage) newPdf.addPage();
         isFirstPage = false;
 
         const pdfWidth = newPdf.internal.pageSize.getWidth();
         const pdfHeight = newPdf.internal.pageSize.getHeight();
-        const canvasAspect = canvas.width / canvas.height;
+        const canvasAspect = (viewport.width) / (viewport.height); // Use viewport dimensions for aspect ratio
         const pageAspect = pdfWidth / pdfHeight;
 
         let finalWidth: number, finalHeight: number;

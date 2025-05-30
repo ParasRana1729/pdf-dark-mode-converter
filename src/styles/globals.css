@@ -17,4 +17,25 @@ body {
 
 #__next {
   height: 100%;
+}
+
+/* Optimize image and canvas rendering for better quality */
+canvas {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: high-quality;
+  image-rendering: smooth;
+}
+
+img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: high-quality;
+  image-rendering: smooth;
+}
+
+/* Ensure high quality rendering on high-DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  canvas {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: high-quality;
+  }
 } 
